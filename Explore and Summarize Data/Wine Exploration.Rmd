@@ -987,5 +987,5 @@ eliminate some of the bias in the rankings that are collected. Another area to t
 that is more robust than just opinions. An interesting data item to include in the data set is price of each sampled wine. \ 
 
 
-
+The end thank you for reading!
 
