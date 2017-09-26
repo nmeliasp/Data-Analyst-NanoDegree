@@ -1,0 +1,5 @@
+
+
+http://www.statmethods.net/stats/descriptives.html
+
+http://www.sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2

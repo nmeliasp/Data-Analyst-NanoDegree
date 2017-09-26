@@ -1,0 +1,701 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+ Wine by Nick Olson
+=====================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Packages}
+
+# Install packages and libraries
+#install.packages("ggplot2")
+#install.packages("ggcorrplot")
+
+library(ggplot2)
+library(ggcorrplot)
+library(gridExtra)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Load_data}
+
+#Find where the dataset is and write to variable
+
+setwd("C:/Users/nolson8.COLLEGES/Desktop/Python/R")
+wine <- read.csv("wineQualityReds.csv", sep = ',', header=T)
+
+```
+
+I will explore a wine dataset that focuses on the characteristics of red wine.
+
+# Univariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Str}
+
+#View the structure of the dataset
+
+str(wine)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Summary}
+
+#Summary of the variable
+
+summary(wine)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Dim}
+
+#Find how many observations and variables are in the dataset
+
+dim(wine)
+
+```
+
+The dataset has 13 variables and 1599 observations
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Quality1}
+
+#Write a new variable that groups quality
+
+wine$quality1 <- cut(wine$quality, c(2,4,6,8),
+                     labels = c("Low", "Medium", "High"))
+
+```
+
+Observations are grouped into quality ratings 3-8 and then ranked in to 
+categories Low, Medium and High
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Table}
+
+#View tables of variables
+
+table(wine$quality)
+
+table(wine$quality1)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Function1}
+
+#Create a function
+
+graphing.quality <- function(quality, binwidth = 0.01) {
+  return(ggplot(aes_string(x = quality), data = wine) + 
+           geom_histogram(stat = "count"))
+  }
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots1}
+
+#Create variables for graphs and arrange into a grid
+
+
+q.plot1 <- graphing.quality('quality1',0.01)
+
+q.plot2 <- graphing.quality('quality',0.01)
+
+grid.arrange(q.plot1, q.plot2, ncol=2)
+
+```
+
+After plotting the Red Wine Dataset most wines have a quality of 5 or 6 while 
+low quality and high quality are less common.  When I created a new variable 
+that groups quality into 3 categories, 'Medium' quality had the most 
+observations.
+
+Next I wanted to look at the characteristics (input variables) of the red wine.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Function2}
+
+#Create function for histograms
+
+hist.graph <- function(wine, xvar_string) {
+  wine1 <- ggplot(data=wine, aes_string(x=xvar_string)) +
+    geom_histogram(bins = 100)
+  wine1
+}
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=8, Plots2}
+
+#Create new variables to graph function. Arrange into grid.
+
+
+alcohol.plot1 <- hist.graph(wine, "alcohol")
+
+sulphates.plot1 <- hist.graph(wine, "sulphates")
+
+density.plot1 <- hist.graph(wine, "density")
+
+total.sulfur.dioxide.plot1 <- hist.graph(wine, "total.sulfur.dioxide")
+
+free.sulfur.dioxide.plot1 <- hist.graph(wine, "free.sulfur.dioxide")
+
+chlorides.plot1 <- hist.graph(wine, "chlorides")
+
+residual.sugar.plot1 <- hist.graph(wine, "residual.sugar")
+
+citric.acid.plot1 <- hist.graph(wine, "citric.acid")
+
+volatile.acidity.plot1 <- hist.graph(wine, "volatile.acidity")
+
+fixed.acidity.plot1 <- hist.graph(wine, "fixed.acidity")
+
+pH.plot1 <- hist.graph(wine, "pH")
+
+grid.arrange(alcohol.plot1, sulphates.plot1, density.plot1, 
+             total.sulfur.dioxide.plot1, free.sulfur.dioxide.plot1, 
+             chlorides.plot1, residual.sugar.plot1, citric.acid.plot1, 
+             volatile.acidity.plot1, fixed.acidity.plot1, pH.plot1, ncol = 3)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, summarySugar}
+
+summary(wine$residual.sugar)
+
+```
+
+While some of the graphs had normal distribution, some of them were skewed to 
+the left. Others were bimodal. I also noticed that Citric Acid had two peaks at 
+0 and .49.  Residual Sugar and Chlorides had some of the biggest outliers.
+Residual Sugar had a mean of 2.539 however, it had a max of 15.5.  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, logscale}
+
+sulphates.log <- qplot(x = log10(sulphates), data = wine, bins = 100)
+
+total.sulfur.dioxide.log <- qplot(x = log10(total.sulfur.dioxide), 
+                                  data = wine, bins = 100)
+
+free.sulfur.dioxide.log <- qplot(x = log10(free.sulfur.dioxide), 
+                                 data = wine, bins = 100)
+
+chlorides.log <- qplot(x = log10(chlorides), data = wine, bins = 100)
+
+residual.sugar.log <- qplot(x = residual.sugar, data = wine, bins = 100)
+
+grid.arrange(sulphates.log, total.sulfur.dioxide.log, free.sulfur.dioxide.log, 
+             chlorides.log, residual.sugar.log, ncol = 2)
+
+```
+
+Some of the features had outliers and were not close to a normal distribution. 
+I took the log10 of those features to get a more normal distribution.
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+
+There are 1599 wine observations in the dataset.  The dataset included 12 
+features (fixed acidity, volatile acidity, citric acid, residual sugar, 
+chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, 
+alcohol, quality).  
+All of the features are numbered (except quality which is an integer). 
+None of them are order factored variables.
+
+### What is/are the main feature(s) of interest in your dataset?
+
+The main feature of interest to me is the quality of the wine. I would like to 
+see which other features effect the quality of the wine.  
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+
+Based on my current knowledge of wines. I am not sure which variables will have 
+any correlation with the quality.  However, based on the plots I would think 
+that density and/or the citric acid would affect the quality. 
+
+### Did you create any new variables from existing variables in the dataset?
+
+I created a new variable for wine quality.  I grouped the observations in "Low",
+"Medium" and "High" quality.
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+After increasing the bin size for citirc acid I noticed that quite a few wines 
+have either 0 g/dm^3 or .49 g/dm^3 of citric acid.
+
+# Bivariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Correlation}
+
+#Create a variable that holds a correlation matrix
+
+winedata <- wine[, c(2,3,4,5,6,7,8,9,10,11,12,13)]
+
+corr <- cor(winedata)
+corr
+
+ggcorrplot(corr, type = "lower", method = 'square', lab = TRUE, lab_size = 2.5,
+           hc.order = TRUE)
+
+```
+
+This correlation matrix indicates that there is a positive correlation between 
+quality and alcohol, citric acid, sulphates and fixed acidity.  It also shows a 
+negative correlation between volatile acidity, total sulfur dioxide, chlorides 
+and density.
+
+-Quality of wine increasing
+```{r echo=FALSE, message=FALSE, warning=FALSE, Function3}
+
+box.plot.graphs <- function(wine, xvar_string, yvar_string){
+  gg.graph <- ggplot(aes_string(x = xvar_string, y = yvar_string), 
+                     data = wine) +
+    geom_jitter( alpha = .3)  +
+    geom_boxplot( alpha = .5,color = 'blue')+
+    stat_summary(fun.y = "mean", geom = "point", color = "red",
+                 shape = 8, size = 4) 
+  gg.graph
+  }
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots3}
+
+#Create variables that hold graphs of positive correlation
+
+positive.graph1 <- box.plot.graphs(wine, 'quality1', 'citric.acid')
+
+positive.graph2 <- box.plot.graphs(wine, 'quality1', 'sulphates')
+
+positive.graph3 <- box.plot.graphs(wine, 'quality1', 'fixed.acidity')
+
+positive.graph4 <- box.plot.graphs(wine, 'quality1', 'alcohol')
+
+grid.arrange(positive.graph1, positive.graph2, positive.graph3, positive.graph4,
+             ncol = 2)
+
+```
+
+I chose to analyze Alcohol, Citric Acid, Sulphates and Fixed Acidity because 
+they were the top positively correlated features with quality. 
+Alcohol had the biggest correlation with quality (0.48). It looks as though 
+alcohol content is greater in 'High' quality wines.  All of these features seem
+to increase along with the quality.
+
+-Quality of Wine decreasing
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots4}
+
+#Create variables that hold graphs of negative correlation
+
+negative.graph1 <- box.plot.graphs(wine, 'quality1', 'volatile.acidity')
+
+negative.graph2 <- box.plot.graphs(wine, 'quality1', 'total.sulfur.dioxide')
+
+negative.graph3 <- box.plot.graphs(wine, 'quality1', 'density')
+
+negative.graph4 <- box.plot.graphs(wine, 'quality1', 'chlorides')
+
+grid.arrange(negative.graph1, negative.graph2, negative.graph3, negative.graph4,
+             ncol = 2)
+
+```
+
+Volatile Acidity, Total Sulfur Dioxide, Density and Chlorides were the features 
+with the largest negative correlations with the wines quality. Volatile Acidity 
+had the biggest negative correlation with quality (-0.39). Volatile Acidity was 
+much higher in 'Low' quality wines. As you can tell from the graphs the negative
+correlation for the other 3 features was small.
+
+-Other Correlations
+
+Positive Correlations
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Function4}
+
+corr.graphs <- function(wine, xvar_string, yvar_string){
+  gg.graph <- ggplot(aes_string(x = xvar_string, y = yvar_string, 
+                                color ='quality1'), 
+                      data = wine) +
+    geom_point(alpha = 0.8, size = 1) +
+    geom_smooth(method = "lm", se = FALSE,size=1)  +
+    scale_color_brewer(type='seq', guide=guide_legend(title='Quality')) + 
+    theme_dark() 
+  gg.graph
+  }
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots5}
+
+#Create variable that hold graphs of positive correlation
+
+corr.graph1 <- corr.graphs(wine, 'free.sulfur.dioxide', 'total.sulfur.dioxide')
+
+corr.log.graph1 <- ggplot(aes(x = log10(total.sulfur.dioxide), 
+                 y = log10(free.sulfur.dioxide), colour = quality1), 
+             data = wine) +
+    geom_point(alpha = 0.8, size = 1) +
+    geom_smooth(method = "lm", se = FALSE,size=1)  +
+    scale_color_brewer(type='seq', guide=guide_legend(title='Quality')) + 
+    theme_dark() +
+  scale_x_continuous(lim=c(quantile(log10(wine$total.sulfur.dioxide),
+                                    0.01),
+                           quantile(log10(wine$total.sulfur.dioxide),
+                                    0.99))) +
+  scale_y_continuous(lim=c(quantile(log10(wine$free.sulfur.dioxide),
+                                    0.01),
+                           quantile(log10(wine$free.sulfur.dioxide),
+                                    0.99)))
+
+grid.arrange(corr.graph1, corr.log.graph1, ncol = 1)
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots6}
+
+#Create variable that hold graphs of positive correlation
+
+corr.graph2 <- corr.graphs(wine, 'density', 'fixed.acidity')
+
+corr.graph2
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots7}
+
+#Create variable that hold graphs of positive correlation
+
+corr.graph3 <- corr.graphs(wine, 'fixed.acidity', 'citric.acid')
+
+corr.graph3
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots8}
+
+#Create variable that hold graphs of positive correlation
+
+corr.graph4 <- corr.graphs(wine, 'sulphates', 'alcohol')
+
+corr.log.graph4 <- ggplot(aes(x = log10(sulphates), 
+                 y = alcohol, colour = quality1), 
+             data = wine) +
+    geom_point(alpha = 0.8, size = 1) +
+    geom_smooth(method = "lm", se = FALSE,size=1)  +
+    scale_color_brewer(type='seq', guide=guide_legend(title='Quality')) + 
+    theme_dark() +
+  scale_x_continuous(lim=c(quantile(log10(wine$sulphates),
+                                    0.01),
+                           quantile(log10(wine$sulphates),
+                                    0.99)))
+
+grid.arrange(corr.graph4, corr.log.graph4, ncol = 1)
+
+```
+
+I chose to graph 3 features the greatest positive correlations. I also wanted to
+graph the correlation between Alcohol and Sulfates. These two features were not 
+strongly correlated with each other. However, they were the top 2 features that 
+were positivly correlated with the quality of the wine. As you can see, most 
+observations have less than 1 g/dm3 of sulphates. I also wanted to log transform
+the graphs that were not normal distribution. I log transfored the features 
+Free Sulfur Dioxide and Total Sulfur Dioxide.
+
+Negative Correlations
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots9}
+
+#Create variable that hold graphs of negative correlation
+
+corr.graph5 <- corr.graphs(wine, 'fixed.acidity', 'pH')
+
+corr.graph5
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots10}
+
+#Create variable that hold graphs of negative correlation
+
+corr.graph6 <- corr.graphs(wine, 'citric.acid', 'volatile.acidity')
+
+corr.graph6
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots11}
+
+#Create variable that hold graphs of negative correlation
+
+corr.graph7 <- corr.graphs(wine, 'density', 'alcohol')
+
+corr.graph7
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plots12}
+
+#Create variable that hold graphs of negative correlation
+
+corr.graph8 <- corr.graphs(wine, 'volatile.acidity', 'total.sulfur.dioxide')
+
+corr.log.graph8 <- ggplot(aes(x = volatile.acidity, 
+                 y = log10(total.sulfur.dioxide), colour = quality1), 
+             data = wine) +
+    geom_point(alpha = 0.8, size = 1) +
+    geom_smooth(method = "lm", se = FALSE,size=1)  +
+    scale_color_brewer(type='seq', guide=guide_legend(title='Quality')) + 
+    theme_dark() +
+  scale_y_continuous(lim=c(quantile(log10(wine$free.sulfur.dioxide),
+                                    0.01),
+                           quantile(log10(wine$free.sulfur.dioxide),
+                                    0.99)))
+
+grid.arrange(corr.graph8, corr.log.graph8, ncol = 1)
+
+```
+
+These are graphs of the 3 features with the greatest negative correlations. I 
+also wanted to graph the correlation between Total Sulfur Dioxide and Volatile 
+Acidity. These two features were not strongly correlated with each other. In 
+fact they had a positive correlation with each other. However, they were the top
+2 features that were negatively correlated with the quality of the wine. I log 
+transformed Total Sulfur Dioxide to account for outliers.
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features \
+in the dataset?
+
+I noticed a few positive and negative correlations within the dataset.  
+My main feature of interest was the observed quality of the wine.  The quality 
+of wine generally went up when there was more citric acid present.  The opposite 
+effect happend when there was more volatile acidity.  The more volatile acidity, 
+the lower quality the wine.  This makes sense as both were negativly correlated.
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+I noticed that there were a few features in the dataset that were either 
+negatively or positively correlated.  Most of them were what I would have 
+expected. I also looked at the relationship between alcohol and sulphates. 
+Although they do not have a high positive correlation with eachother, they are 
+both positively correlated with qulaity.
+
+### What was the strongest relationship you found?
+
+The strongest relationship that I found was the negative correlation between 
+fixed acidity and pH.  
+
+# Multivariate Plots Section
+
+I chose to look at some graphs of features that were positively and negatively 
+correlated
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Function5}
+
+multi.graphs <- function(wine, xvar_string, yvar_string){
+  gg.graph <- ggplot(aes_string(x = xvar_string, y = yvar_string, 
+                                color ='quality1'), 
+                      data = wine) +
+    geom_point() 
+  gg.graph
+  }
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, multi.graph1}
+
+multi.graph1 <- multi.graphs(wine, 'fixed.acidity', 'citric.acid')
+
+multi.graph1
+
+```
+
+Citric Acid and Fixed Acidity were positively correlated (0.67).  It looks as if
+the higher quality observations are positioned towards the top while a majority 
+of lower quality observations are towards the bottom.  There are low quality 
+observations that are scattered thoughout as well.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, multi.graph2}
+
+multi.graph2 <- multi.graphs(wine, 'fixed.acidity', 'density')
+
+multi.graph2
+
+```
+
+Density and Fixed Acidity are also positively correlated (0.67).  It looks like 
+a majority of the high quality observations are located to the lower right side.
+The medium and lower quality observations tend to fall towards the upper left 
+side.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, multi.graph3}
+
+multi.graph3 <- multi.graphs(wine, 'free.sulfur.dioxide', 'total.sulfur.dioxide')
+
+multi.graph3
+
+```
+
+Total Sulfur Dioxide and Free Sulfur Dioxide are positively correlated as well 
+(0.67). High quality observations look to fall on the right side while the lower
+and medium quality seem to lean to the left side.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, multi.graph7}
+
+multi.graph7 <- multi.graphs(wine, 'sulphates', 'alcohol')
+
+multi.graph7
+
+```
+
+Alcohol and Sulphates were the most positively correlated features with quality.
+They have a weak positive correlation with each other though. The graph 
+indicates that most high quality observations have a higher alcohol content but 
+not necessarily more sulphates.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, multi.graph4}
+
+multi.graph4 <- multi.graphs(wine, 'fixed.acidity', 'pH')
+
+multi.graph4
+
+```
+
+pH and Fixed Acidity are negatively correlated (-0.68). This is actually the 
+biggest correlation between any features. It looks like the lower quality 
+observations seem to be towards the top. You can see the one outlier near the 
+bottom however.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, multi.graph5}
+
+multi.graph5 <- multi.graphs(wine, 'citric.acid', 'volatile.acidity')
+multi.graph5
+
+```
+
+Volatile Acidity and Citric Acid were also negatively correlated (-.55). Higher 
+quality observations are towards the bottom right while lower quality are at the
+top left.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, multi.graph6}
+
+multi.graph6 <- multi.graphs(wine, 'density', 'alcohol')
+
+multi.graph6
+
+```
+
+Alcohol and Desity are negatively correlated (-0.55). High quality observations 
+are towards the top left. Medium and lower quality are located towards the 
+bottom.
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of\
+looking at your feature(s) of interest?
+
+### Were there any interesting or surprising interactions between features?
+
+Because of the positive correlations between fixed acidity/citric acid, fixed 
+acidity/density and free sulfur dioxide/total sulfur dioxide I decided to make 
+multivariate plots showing the impact on quality.  Although the graphs are a 
+little messy, you can see that qualities are grouped together. When looking at 
+citric acid/fixed acidity's effects on quality you can see that high quality 
+observations are grouped towards the top while medium is below it.  The majoriy 
+of low quality appear at the bottom as well.
+
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_One}
+
+#Graph quality
+
+ggplot(wine, aes(quality1)) + geom_bar() + 
+  labs(x = "Quality", y = "# of Observations") + 
+  ggtitle("Red Wine Quality") + 
+  theme(plot.title = element_text(hjust = 0.5))
+                       
+
+```
+
+### Description One
+
+There is a large number of observations that can be grouped into 'Medium' 
+quality wine.  It is more rare to find wines that are 'Low' quality or 'High' 
+quality.
+
+### Plot Two
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
+
+#Graph Quality and Alcohol
+
+ggplot(aes(factor(quality1), alcohol), data = wine) +
+  labs(x = "Quality", y = "Alcohol (% by Volume)")+ geom_jitter( alpha = .3)  +
+  geom_boxplot( alpha = .5,color = 'blue')+
+  stat_summary(fun.y = "mean", geom = "point", color = "red", 
+               shape = 8, size = 4) + ggtitle("Quality of Alcohol") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+### Description Two
+
+Alcohol had a positive correlation with quality.  Higher alcohol content seemed 
+to have more observations that were grouped into 'High' quality wine. This graph 
+is significant because it is the best indicator of the quality of wine.
+
+### Plot Three
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
+
+#Graph sulphates/alcohol and quality
+
+ggplot(wine, aes(x = sulphates, y= alcohol, 
+                                 color = quality1)) + geom_point() +
+  ggtitle("Biggest Quality Factors Correlated") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(colour = "Quality",
+       x = "Sulphates (g/dm3) ", y = "Alcohol (% by Volume)")
+
+```
+
+### Description Three
+
+When you look at alcohol/sulphates relationship with quality, you can see that 
+the points are grouped together. With the exception of outliers most of the low 
+quality observations were on the left side of the graph. The higher quality 
+observations seem to be higher and to the right.
+
+------
+
+# Reflection
+
+The Red Wine dataset that I explored contained 1599 observations of quality.  
+Looking into the dataset I found that interesting features such as Alcohol and 
+Sulphates had an effect on the precieved quality of the red wine.  I was able to
+find a correlation between quality and Alcohol and Sulphates. I was surprised to
+find that Alcohol had a strong correlation with quality. I would have thought 
+the opposite. 
+One of the problems that I found with this dataset set that 
+quality was more of a matter of opinion. As shown by some of the outliers, 
+I think that a persons preference has an infulence on the quality when it came 
+to certain features. For example, someone who likes sweeter wines is going to 
+give a higher quality rating to wines with less citric acid. In the future 
+I would try to come up with a more solid definition of quality. Maybe find 
+quality ratings on a sub-category of red wine. Red wine seems to be a very broad
+category of wine.
+
+

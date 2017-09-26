@@ -1,0 +1,991 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+Red Wine Data Exploration by Elias Paz
+========================================================
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using in your analysis in this code
+# chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk. This
+# prevents the code from displaying in the knitted HTML output. You should set
+# echo=FALSE for all code chunks in your file, unless it makes sense for your
+# report to show the code that generated a particular plot.
+
+# The other parameters for "message" and "warning" should also be set to FALSE
+# for other code chunks once you have verified that each plot comes out as you
+# want it to. This will clean up the flow of your report.
+
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(ggcorrplot)
+library(GGally)
+library(pastecs)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+df <- read.csv('wineQualityReds.csv')
+
+```
+
+
+
+# Introduction:
+I will be exploring the Red Wine Quality data set. This data contains data from 11 different variables that help determine the quality of a red wine.  
+
+# Questions
+In exploring this data set, I will seek to answer the following questions: \
+1. What does the Quality of Wine distribution look like? \
+2. What properties and their respective values make up a good wine? \
+3. What properties and their respective values make up a defective wine? \
+\
+
+# Univariate Plots Section \
+
+
+```{r echo=FALSE, Univariate_Plots}
+# Exploration of data structure and variable summaries
+str(df)
+```
+
+This data set has 1599 observations with 14 variables. 
+
+
+
+```{r echo=FALSE, bargraph_fun}
+#Bar graph function 
+bargraph.fun <- function(var1,df){
+  p1 <- ggplot(aes(x=var1),data=df) +
+    geom_bar(stat = "count", color = 'blue', fill = 'black') 
+  return (p1)
+  
+}
+
+```
+
+
+```{r echo=FALSE, histogram_fun}
+# Histogram Function
+histogram.fun <- function(var1,df){
+  
+  p1 <- ggplot(aes(x = var1), data = df) +
+    geom_histogram(color = 'black', fill = 'green') 
+  return (p1)
+}
+```
+
+```{r echo=FALSE, desc_stat.fun}
+# Descriptive Stats function
+desc_stats.fun <- function(var1){
+  options(scipen=100)
+  options(digits=2)
+  return(stat.desc(var1))
+  }
+```
+
+
+
+
+
+```{r echo=FALSE, bargraph.1}
+# Plot of Quality ratings
+bargraph.fun(df$quality,df) +
+  geom_vline(xintercept = mean(df$quality), linetype=1, color='red', alpha=1) +
+  geom_vline(xintercept = median(df$quality), linetype=2, color='red', alpha=1) +
+  coord_cartesian(xlim=c(2,9)) +
+  xlab("Quality")
+
+```
+
+The first categorical variable I wanted to explore was the Quality. \ 
+From the graph above, it looks like majority of wines are above the mean of 5.636 which is displayed in the solid red line.
+The median is the stripped line. \
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, quality.1}
+# Quality table summaries
+table(df$quality)
+quality.labs <- paste('low', 'medium','high')
+df$qaulity.bucket <- cut(df$quality, breaks = c("2","4","6","8"), labels = c("low","medium","high"))
+table(df$qaulity.bucket)
+summary(df$quality)
+df.s1 <- subset(df, quality < mean(quality))
+df.s2 <- subset(df, quality > mean(quality))
+
+length(df.s1$quality)
+length(df.s2$quality)
+```
+
+From the tables and summaries above, Wine Rankings of 5 and 6 are the most popular rankings. The table also confirms that there are more
+rankings above the mean than below.\
+
+I wonder what the alcohol percentage distribution looks like.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, histogram.1}
+# Alcohol Histogram plot
+histogram.fun(df$alcohol,df) +
+    geom_vline(xintercept = mean(df$alcohol), linetype=1, color='red', alpha=1) +
+  xlab("Alcohol %") +
+  scale_y_log10()
+```
+
+
+
+
+From the graph above, it looks like most wines samples had an alcohol percentage of about 9-10.5%.
+There are a few outliers present above 14%
+
+
+I wonder what other variables such as pH and the different acids look like.\
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, freqpoly.1}
+# pH plot
+ggplot(aes(x = pH), data = df) +
+  geom_freqpoly()
+```
+
+
+As stated in the data set explanation, most wines have a pH between 3 and 4 and that is evident in the graph above.\
+
+It is said that pH represents how much acid is in a wine regardless of taste. \
+
+Next lets see the total acidity, tritratable acid, of the sampled wines.\ 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, frepoly.2}
+#creating new variable. Total Acidity. 
+df$total.acidity <- df$fixed.acidity + df$volatile.acidity + df$citric.acid
+ggplot(data = df, aes(x = total.acidity)) +
+  geom_freqpoly()
+summary(df$total.acidity)
+```
+
+As seen above, majority of wines have 10.07 g/mL of total acidity. It is said that tritation measures how strong the acid tastes.\
+
+Next I will explore the different acidity types in the data.\
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, histogram.acidity}
+# Histogram Acidity plots
+p1 <- histogram.fun(df$fixed.acidity,df) +
+  coord_cartesian(xlim = c(4,quantile(df$fixed.acidity,.99))) +
+  xlab("Fixed Acidity")
+
+
+p2 <- histogram.fun(df$volatile.acidity,df) +
+  coord_cartesian(xlim = c(0.1,quantile(df$volatile.acidity,.99))) +
+  xlab("Volatile Acidity")
+  
+p3 <- histogram.fun(df$citric.acid,df) +
+  coord_cartesian(xlim = c(0,quantile(df$citric.acid,.99))) +
+  xlab("Citric Acid")
+
+p4 <- histogram.fun(df$total.acidity,df) +
+  coord_cartesian(xlim = c(4,quantile(df$total.acidity,.99))) +
+  xlab ("Total Acidity")
+
+
+grid.arrange(p1,p2,p3,p4, ncol=2)
+
+```
+
+
+
+The following observations from the plots above are: \
+1. Fixed acidity peaks between 4 and 9 g/mL \
+2. Volatile acidity peaks between .2 and .7 g/mL \
+3. Majority of wines have a citric acid level of .25 g/mL or less \
+4. There is signifcanty more fixed acidity in the sampled wines than volatile or citric acids. \
+5. Total Acidity seems to have a normal distribtuion. \
+6. There appears to be outliers present across all Acidity categories. \
+\
+
+Lets see some descriptive statistics about the different acidity levels \
+
+
+First is fixed acidity \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,desc_stats.1}
+# descriptive stats for fixed.acidity
+desc_stats.fun(df$fixed.acidity)
+
+#subsetting data to count how many entries are above and below the mean and median
+df.s7.mean <- subset(df, fixed.acidity > mean(fixed.acidity))
+df.s8.mean <- subset(df, fixed.acidity < mean(fixed.acidity))
+df.s7.median <- subset(df, fixed.acidity > median(fixed.acidity))
+df.s8.median <- subset(df, fixed.acidity < median(fixed.acidity))
+#length(df.s7.mean$fixed.acidity)
+#length(df.s8.mean$fixed.acidity)
+#length(df.s7.median$fixed.acidity)
+#length(df.s8.median$fixed.acidity)
+```
+From the table above, it appears there are outliers in the data. The max value of 15.9 g/ml is more than 3 STDs from the mean \
+
+Next is volatile acidity \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,desc_stats.2}
+# descriptive stats for volatile.acidity
+desc_stats.fun(df$volatile.acidity)
+
+#subsetting data to count how many entries are above and below the mean and median
+
+#df.s9.mean <- subset(df, volatile.acidity > mean(volatile.acidity))
+#df.s10.mean <- subset(df, volatile.acidity < mean(volatile.acidity))
+#df.s9.median <- subset(df, volatile.acidity > median(volatile.acidity))
+#df.s10.median <- subset(df, volatile.acidity < median(volatile.acidity))
+#length(df.s9.mean$volatile.acidity)
+#length(df.s10.mean$volatile.acidity)
+#length(df.s9.median$volatile.acidity)
+#length(df.s10.median$volatile.acidity)
+```
+From the table above, it appears there are outliers in the data. The max value of 1.58 g/ml is more than 3 STDs from the mean \
+
+Next is citric acid \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,desc_stats.3}
+# descriptive stats for citric.acid
+desc_stats.fun(df$citric.acid)
+
+#subsetting data to count how many entries are above and below the mean and median
+
+#df.s11.mean <- subset(df, citric.acid > mean(citric.acid))
+#df.s12.mean <- subset(df, citric.acid < mean(citric.acid))
+#df.s11.median <- subset(df, citric.acid > median(citric.acid))
+#df.s12.median <- subset(df, citric.acid < median(citric.acid))
+#length(df.s11.mean$citric.acid)
+#length(df.s12.mean$citric.acid)
+#length(df.s11.median$citric.acid)
+#length(df.s12.median$citric.acid)
+```
+From the table above, it appears there are outliers in the data . The max value of 1 g/ml is more than 3 STDs from the mean. \
+
+The last one is Total Acidity \
+```{r echo=FALSE, message=FALSE, warning=FALSE,desc_stats.4}
+# descriptive stats for total.acidity
+desc_stats.fun(df$total.acidity)
+
+#subsetting data to count how many entries are above and below the mean and median
+#df.s13.mean <- subset(df, total.acidity > mean(total.acidity))
+#df.s14.mean <- subset(df, total.acidity < mean(total.acidity))
+#df.s13.median <- subset(df, total.acidity > median(total.acidity))
+#df.s14.median <- subset(df, total.acidity < median(total.acidity))
+#length(df.s13.mean$total.acidity)
+#length(df.s14.mean$total.acidity)
+#length(df.s13.median$total.acidity)
+#length(df.s14.median$total.acidity)
+```
+
+From the table above, it appears there are outliers in the data as the graph suggests. The max value of 17.045 g/ml is more than 3 STDs\
+from the  mean \
+
+
+Now lets take a look at the distribution for sulphates\
+```{r echo=FALSE, message=FALSE, warning=FALSE,histogram.sulphates}
+# sulphates exploration histogram
+histogram.fun(df$sulphates,df) +
+  xlab("Sulphates") +
+  coord_cartesian(xlim = c(0.3,quantile(df$sulphates,.99)))
+```
+\
+Sulphates has a normal distribution between about 0 and 1 g/ml and appear to have outliers above 1.5 g/ml Top 1% have been omitted \
+from graph \
+Lets looks at some descriptive statistics for sulphates.\
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,desc_stats.sulphates}
+# descriptive stats for sulphates
+desc_stats.fun(df$sulphates)
+
+#subsetting data to count how many entries are above and below the mean and median
+#df.s5.mean <- subset(df, sulphates > mean(sulphates))
+#df.s6.mean <- subset(df, sulphates < mean(sulphates))
+#df.s5.median <- subset(df, sulphates > median(sulphates))
+#df.s6.median <- subset(df, sulphates < median(sulphates))
+
+#length(df.s5.mean$sulphates)
+#length(df.s6.mean$sulphates)
+#length(df.s5.median$sulphates)
+#length(df.s6.median$sulphates)
+```
+
+From the table above, it appears there are outliers in the data as the graph suggests. The max value of 2 g/ml is more than 3 STDs \
+from the mean
+
+
+
+
+# Univariate Analysis
+
+
+
+### Structure of data set:
+The data set  contains 1599 observations with 13 different variables. \
+'data.frame':	1599 obs. of  13 variables:
+ 
+
+### Main Feature of interest:
+The main feature I am interested in from this data set is how wine quality is affected. 
+
+### Other features in the dataset that will help support \
+investigation into feature of interest?
+I will explore the correlation of wine quality with the other variables to help determine the other features I will use to support my \
+investigation.
+
+### New Variables created:
+The following new variables were created to help aid my data exploration in the bivariate and multivariate sections. 
+
+* df$Quality_Buckets
+* df$total.acidity
+
+### Features Explored 
+
+* Wine Quality \
+The wine Quality distribution looks like a normal distrubtion with a mean of `r mean(df$quality)`. Majority \
+of the Quality rankings where above the mean. There were `r length(df.s2$quality)` entries above the mean and \
+`r length(df.s1$quality)` entries below the mean. The actual distribution of quality rankings can be seen below.
+
+```{r echo=FALSE}
+table(df$quality)
+```
+* Acidity \
+There are two different types of acidity in wine, Fixed Acidity and Volatile Acidity. Volatile Acidity contributes to the overall taste \
+of wine while non volatile wine can create a unpleasent vinegar taste with high quantities. The distributions for for fixed acidity and \
+total acidity seem to be normal distrubtions while citric and volatile acidity look more bi-modal. From the graphs and tables for acidity,\
+there are outliers present in every acidity category. To deal with the outliers, the best metric to explore is the median since it is \
+more robust to outliers. 
+
+
+
+* Sulphates \
+From the summary tables for sulphates, we see that sulphates have a a min of .33 g/ml and a max of 2 g/ml. The mean for sulphates is .66 g/ml. \
+It appears that the max value for sulphates is an outlier due to it being over 3 STDs from the mean. There are are 964 wine rankings with \
+sulphate levels below the mean and 635 rankings above the mean. In comparison, there are are 770 rankings above the median and \
+768 rankings below the median. It appears the metric to best explore is the median  to help deal with outliers that are present in the data. \
+
+
+
+
+# Bivariate Plots Section \
+
+
+Before I begin the Bivariate exploration, I am going to load in the data set again and create factors out of the quality rankings \
+to help with the supporting graphs. I will also add the total acidity variable in to the data frame to perform correlations against
+wine quality rankings\
+
+To start my exploration, I will first create a correlation matrix to identify the top strongest correlated properties to wine quality \
+```{r echo=FALSE, message=FALSE, warning=FALSE,correlation}
+# Wine Quality correlation
+df <- read.csv('wineQualityReds.csv')
+df$total.acidity <- df$fixed.acidity + df$volatile.acidity + df$citric.acid
+df$Quality_Buckets <- cut(df$quality, breaks = c('2','4','6','8'), labels = c("low","medium","high"))
+c1 <- cor(x=df[,2:14], y= df$quality)
+c2 <- cor(x=df[,2:14])
+quality.factors <- factor(df$quality, levels=c(0,1,2,3,4,5,6,7,8,9,10))
+df$quality.factors <- quality.factors
+ggcorrplot(c2, type = "lower", method = 'square', lab = TRUE, lab_size = 2.5,hc.order = TRUE)
+```
+
+From the correlation matrix for quality, I will explore the top 3 positive correlations to see the effect on quality. Those are: \
+1. Alcohol \
+2. Sulphates \
+3. Citric acid \ 
+
+I am also interested in exploring the largest negative correlation to see what the effect on quality is. The variable I will look at is \
+1. Volatile Acidity
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,boxplot.fun}
+# Boxplot Function
+boxplot.fun <- function(df, xvar,yvar){
+  plot <- ggplot(data = df, aes_string(x=xvar,y=yvar)) +
+    geom_boxplot()
+  return (plot)
+}
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,line.fun}
+# Line Graph Function
+line.fun <- function(df, xvar,yvar){
+  plot <- ggplot(data = df, aes_string(x=xvar,y=yvar)) +
+    geom_line(aes(group = 1),colour = 'blue') 
+  return (plot)
+}
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,scatterplot.fun}
+# Scatterplot Function
+scatterplot.fun <- function(df, xvar,yvar){
+  plot <- ggplot(aes_string(x = xvar, y = yvar), data = df) +
+    geom_jitter(color = 'blue', alpha = 1/10) +
+    geom_line(stat = 'summary', fun.y = mean, color = 'green') +
+    geom_line(stat = 'summary', fun.y = median, color = 'purple') +
+    geom_smooth(method = 'lm', aes( group = 1), color = 'black')
+  return (plot)
+}
+
+```
+
+### Alcohol Exploration \
+
+To start off, lets explore how the alcohol percentage is distributed accross wine quality to try and get an understanding of how \
+alcohol relates to high quality wines
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,alcohol.dist}
+# Alcohol mean distributions across the different wine quality rankings. 
+mean_df.alcohol <- df %>% group_by(quality) %>%
+  summarise(Alcohol_Mean = mean(alcohol),Alcohol_Median = median(alcohol), n = n())
+mean_df.alcohol
+```
+
+
+
+As stated earlier in the univariate section, the mean wine quality was about 5.6% and there were more entries above the mean then below.\ 
+In the \ summary table above, it appears that as wine quality rankings above 5 increase, so does the alcohol mean.
+
+Now lets see how this looks like visually on a box plot
+
+
+
+
+
+``````{r echo=FALSE, message=FALSE, warning=FALSE,biboxplot.1}
+ #Alcohol vs Quality Box plot
+boxplot.fun(df,'quality.factors','alcohol') +
+  geom_hline(yintercept = mean(df$alcohol), linetype='longdash', alpha=.5, color='red') +
+  geom_hline(yintercept = median(df$alcohol), linetype='longdash', alpha=.5, color='orange')
+
+```
+
+
+As seen above, the boxplot confirms that as the quality increases beyond the quality mean, the mean of alcohol seems to increase as well. \
+The red dotted line represents the mean for alcohol and the yellow dotted line represents the median. \
+When we graph the alcohol means, we can see a similar pattern with the median as well. See graph below \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biline.1}
+# Alcohol vs Quality Median Line Graphs
+p6 <- line.fun(mean_df.alcohol,'quality','Alcohol_Mean')
+p7 <- line.fun(mean_df.alcohol,'quality','Alcohol_Median')
+grid.arrange(p6,p7, ncol=2)
+```
+
+As seen above, as the Wine quality increases, the alcohol percentage mean and medians increase as well at around a ranking of 5. \
+
+
+
+Lets see how this looks on a scatter plot.\
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biscatter.1}
+#Alcohol Vs Quality Scatter Plot
+scatterplot.fun(df,'quality','alcohol') +
+    geom_hline(yintercept = mean(df$alcohol), linetype='longdash', alpha=.5, color='red') +
+    geom_hline(yintercept = median(df$alcohol), linetype='longdash', alpha=.5, color='orange')
+```
+
+
+
+From the scatter plot, we can see that majority of the high quality wines have alcohol percentages that are above the mean and medians. \
+In contrast, we see majority of the lower quality wines have alcohol percentages below the mean and medians. 
+
+### Sulphates Exploration \
+
+The next wine property I will explore is sulphates and see how it relates to wine quality rankings. Lets remember that sulphates \
+are not as strongly correlated to quality as alcohol. \
+
+To start off, lets explore how sulphates is distributed accross wine quality to try and get an understanding of how sulphates relate \
+to high quality wines. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,sulphates.dist}
+# Sulphates mean and median distributions across the different wine quality rankings. 
+mean_df.sulphates <- df %>% group_by(quality) %>%
+  summarise(sulphates_mean = mean(sulphates),sulphates_median = median(sulphates), n = n())
+mean_df.sulphates
+
+```
+As stated in the univariate analysis, the metric I will explore is the median to deal with the outliers. Sulphates \
+ have a median of .62 g/ml. It appears that as wine quality rankings increase, sulphate levels also increase. \
+ Lets looks at this visually. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,bibox.2}
+# Sulphates Boxplots
+boxplot.fun(df,'quality.factors','sulphates') +
+  geom_hline(yintercept = mean(df$sulphates), linetype='longdash', alpha=.5, color='red') +
+  geom_hline(yintercept = median(df$sulphates), linetype='longdash', alpha=.5, color='orange')
+```
+
+
+As seen above in the box plot, it appears higher quality wines have higher levels of sulphates that are \
+above the mean and median. Lets see how the median levels look like. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biline.2}
+# Sulphates vs Quality median line graph
+line.fun(mean_df.sulphates,'quality','sulphates_median') +
+  scale_y_continuous(limits = c(.5, .75), breaks = seq(.5,.8,.05)) +
+  geom_hline(yintercept = median(df$sulphates), linetype='longdash', alpha=1, color='orange') +
+  geom_hline(yintercept = mean(df$sulphates), linetype='longdash', alpha=1, color='red')
+```
+
+
+
+The graph above confirms our obversations seem in the tables that as the wine quality increases, the sulphates levels increase. \
+It appears that the high quality wines contain a sulphate level that is above both the median and mean levels. \
+The yellow dotted line is the median and the red dotted line is the mean. \
+
+Lets see how this looks on a scatterplot \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biscatter.2}
+# Sulphates vs Quality Scatter plot
+scatterplot.fun(df,'quality','sulphates') +
+    geom_hline(yintercept = mean(df$sulphates), linetype='longdash', alpha=.5, color='red') +
+    geom_hline(yintercept = median(df$sulphates), linetype='longdash', alpha=.5, color='orange') +
+    coord_cartesian( ylim = c(.4,quantile(df$sulphates,.99)))
+```
+
+
+
+
+From the scatter plot, the top 1% have been omitted to deal with outliers and we can see that there are \
+fewer high quality wines with sulphate levels below the mean and median than above it. \
+Additionally we can see that there are more lower quality wines that have sulphate levels below the mean and median levels than above.
+
+
+### Citric Acid Exploration 
+
+Moving on from the sulphates exploration, I am now going to explore how citric acid relates to wine quality rankings. \
+First, lets remember that citric acid is not as strongly correlated to quality as alcohol percentage.  
+
+To start off, lets explore how citric acid is distributed accross wine quality to try and get an understanding of how citric acid relates \
+to high quality wines. \
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,citric.dist}
+# citric acid mean distributions across the different wine quality rankings. 
+mean_df.citric_acid <- df %>% group_by(quality) %>%
+  summarise(citric_acid_mean = mean(citric.acid),citric_acid_median = median(citric.acid), n = n())
+mean_df.citric_acid
+```
+
+In the case for citric acid, it looks like it follows a similar behaviour as sulphates. \
+As stated in the univariate analysis, the metric I will explore is the median to deal with the outliers. There seems to be more \
+outliers in citric acid with the big difference in the means and medians found in the lower quality wines. The median for citric acid \
+is .26 g/ml. An interesting obervation is that there are more citric acid levels below both the mean and median in contrast to sulphates.\
+
+Lets looks at this visually. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,bibox.3}
+#Box plot of Citric Acid means by Wine Quality Rankings
+boxplot.fun(df,'quality.factors','citric.acid') +
+  geom_hline(yintercept = mean(df$citric.acid), linetype='longdash', alpha=.5, color='red') +
+  geom_hline(yintercept = median(df$citric.acid), linetype='longdash', alpha=.5, color='orange')
+
+```
+
+
+
+The box plot above confirms the obersvations made from the median table. It appears the higher quality wines with rankings of 7 and 8 \
+have citric acid levels above the mean and the median. \
+
+Lets take a visual look at the medians for citric acid across the different wine quality rankings. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biline.3}
+# Plot for citric acid medians acorss the quality rankings. 
+line.fun(mean_df.citric_acid,'quality','citric_acid_median') +
+    geom_hline(yintercept = median(df$citric.acid), linetype='longdash', alpha=1, color='orange') +
+    geom_hline(yintercept = mean(df$citric.acid), linetype='longdash', alpha=1, color='red') +
+    scale_x_continuous(limits = c(3, 8), breaks = seq(3,8,1)) 
+```
+
+
+
+The graph above also confirms the observation that as wine quality increases, citric acid levels incease as well. Additionally, \
+similar to sulphates, high quality wines have citric acid levels that are above both the mean and medians
+
+
+Finally, lets take a look at a scatter plot 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biscatter.3}
+# Citric Acid Scatterplot
+scatterplot.fun(df,'quality','citric.acid') +
+    geom_hline(yintercept = mean(df$citric.acid), linetype='longdash', alpha=.5, color='red') +
+    geom_hline(yintercept = median(df$citric.acid), linetype='longdash', alpha=.5, color='orange') +
+    coord_cartesian( ylim = c(0,quantile(df$citric.acid,.99)))
+```
+
+
+
+From the scatter plot, the top 1% have been omitted to deal with outliers. We can see that majority of the high quality wines \
+have citric levels above the mean and median. However, we can also see that there are more lower quality wines \
+that are above the mean and median as well. This shows that citric acid is not very strongly correlated to quality. 
+
+
+### Volatile Acidity \
+
+Now that we have a better idea of the properties that make a good wine, lets explore a property that makes a bad wine. \
+
+First, lets remember that volatile acidity is negatively correlated to quality.\
+
+To start off, lets explore how volatile acidity is distributed accross wine quality to try and get an understanding of 
+how volatile acidity relates to wine quality. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,volatile_acidity.dist}
+summary_df.volatile_acidity <- df %>% group_by(quality) %>%
+  summarise(volatile_acidity_mean = mean(volatile.acidity),volatile_acidity_median = median(volatile.acidity), n = n())
+summary_df.volatile_acidity
+```
+As stated in the bivariate anaylsis, i will be exploring the median metric to deal with outliers in the data. \
+Looking at the mean/median table above, it is interesting to note that as the wine quality increases, volatile acidity levels decrease. \
+This has to do with the negative correlation. \
+
+Lets see how this looks visually. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,bibox.4}
+# Volatile Acidity vs Quality Box plot
+boxplot.fun(df,'quality.factors','volatile.acidity') +
+  geom_hline(yintercept = mean(df$volatile.acidity), linetype='longdash', alpha=.5, color='red') +
+  geom_hline(yintercept = median(df$volatile.acidity), linetype='longdash', alpha=.5, color='orange')
+```
+
+
+The box plot above seems to support our observation that the lowest quality wines contain the most volatile acidity levels. It is \
+important to note that those levels are above the mean and median. The high quality wines have volatile acidity levels well below the \
+mean and medians. \
+
+Lets take a look at the medians from each wine ranking. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biline.4}
+# Volatiele acidity median across the wine rankings
+line.fun(summary_df.volatile_acidity,'quality','volatile_acidity_median') +
+  geom_hline(yintercept = median(df$volatile.acidity), linetype='longdash', alpha=1, color='orange') +
+  geom_hline(yintercept = mean(df$volatile.acidity), linetype='longdash', alpha=1, color='red') +
+  scale_x_continuous(limits = c(3, 8), breaks = seq(3,8,1)) 
+```
+
+
+Again, we can see that the lower quality wines  have medians that are significantly higer than the higher quality wines. \
+
+Finally lets take a look at a scatter plot. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,biscatter.4}
+# Volatile acidity scatter plot
+scatterplot.fun(df,'quality','volatile.acidity') +
+    geom_hline(yintercept = mean(df$volatile.acidity), linetype='longdash', alpha=.5, color='red') +
+    geom_hline(yintercept = median(df$volatile.acidity), linetype='longdash', alpha=.5, color='orange') +
+    coord_cartesian( ylim = c(0.1,quantile(df$volatile.acidity,.99)))
+```
+
+
+From the scatter plot, we see that there are very few low quality wines with volatile acidity levels that are below the mean and median levels\
+Conversly, we see that there are few high quality wines that have volatile acidity levels above the mean and median levels. \
+
+
+# Bivariate Analysis \
+
+
+My eploration consited of how different properties affect overal wine quality.\
+
+### Alcohol Percentage vs Quality \
+
+The alcohol percentage had the strongest relationship to wine quality than any other property with a co-efficient value of .48. \
+I discovered that as the alcohol percentage increased, the wine quality seemed to increase. The higher quality wines rated 7 and 8 \
+had much higher alcohol means and medians than the lower quality wines. As seen from the scatter plot, there are more high quality wines \
+that have alcohol percentages above the alcohol means and medians than below it. 
+
+### Sulphate levels vs Quality \
+
+The correlation between sulphate and quality was the 2nd strongest relationship that carried a co-efficient of .25. \
+Sulphate seemed to experience a similar pattern as the alcohol percentage did. As wine quality increased, sulphate levels increased. \
+The higher quality wines had higher sulphate means and medians than the lower quality wines. As seen from the scatter plot, there are \
+very few high quality wines that have sulphate levels below the mean and medians. However, due to the weaker relationship, there appears \
+to be a good amount of lower quality wines that are above the mean and median sulphate levels. 
+
+### Citric Acid levels vs Quality \
+
+The correlation between citric acid and quality was the 3rd strongest relationship that carried a co-efficient of .23. \
+Citric Acid has a similar relationship to sulphates and alcohol. As the wine quality increased, the citric acid means and medians \
+increased as well. Majority of the high quality wines had citric acid levels above the mean and median levels. Similar to sulphates and \
+due to the weaker relationship on quality, there were a good amount of lower quality wines above the mean and median levels. 
+
+### Volatile Acidity vs Quality \
+
+My last exploration was on Volatile acidity vs Quality. This relationship had the strongest negative relationship with a co-efficient \
+of -.39. It was interesting to see that volatile acidity had an opposite affect on quality. As volatile acidity decreased, wine quality \
+increased as suggested by the correlation relationship. As the wine quality increased, the volatile acidity mean and median levels \
+decreased. As seen in the scatter plot there are very few high quality wines that have volatile acidity levels above the mean and median \
+levels. This makes sense because high volatile acidity levels leads to an unpleasant taste in wine. 
+
+
+
+# Multivariate Plots Section \
+
+
+
+In the Bivariate section, we saw how quality was affected by alcohol percentage,citric acid, sulphates, and volatile acidity. \
+I am now going to explore the relationship between these properties across the different quality buckets. \
+All graphs will contain data in the 1-99% quantile range to omit any outliers in the data and will be split into 4 quandrants by the means\
+and medians from each property explored. 
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,multiplot.fun}
+#Multiplot Function
+multiplot.fun <- function(df, xvar,yvar){
+  plot <- ggplot(data = df, aes_string(x = xvar, y=yvar)) +
+    geom_jitter(alpha=.4, aes(size=Quality_Buckets, color=Quality_Buckets)) +
+    theme_dark() +
+    scale_color_brewer(palette =  'Paired') +
+    geom_smooth(method = "lm", se = FALSE,size=1, color = 'red')
+    
+  return(plot)
+}
+```
+
+The first relationship I will explore is alcohol vs citric acid. \
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,multiplot.1}
+# Alcohol vs Citric acid plot
+multiplot.fun(df,'alcohol','citric.acid') +
+  geom_vline(xintercept = median(df$alcohol), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$citric.acid),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$alcohol), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$citric.acid),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$alcohol,.01),quantile(df$alcohol,.99)),ylim=c(quantile(df$citric.acid,.01),quantile(df$citric.acid,.99))) 
+  
+```
+
+
+
+In the graph above, the wine quality rankings were grouped into 3 different groups. \
+* 3-4 = Low \
+* 5-6 = Medium \
+* 7-8 = High \
+
+
+We can see that the majority of the high quality wines are above the means and medians of the alcohol percentage and citric acid levels. \
+It appears that the highest quality wines of 7 and 8, have a combination of citric acid levels of at least \
+`r median(df$citric.acid)`g/ml and alcohol percentage of `r median(df$alcohol)`% \
+
+
+Next I would like explore the relation between sulphate and citric acid across the different wine qualities. As seen in the correlation \
+table in the bivariate section, sulphate and citric acid have a correlation co-efficient of .31 and we already saw that these two \
+properties have an affect on quality. \
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,multiplot.2}
+# Sulphates vs Citric Acid
+multiplot.fun(df,'sulphates','citric.acid') +
+  geom_vline(xintercept = median(df$sulphates), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$citric.acid),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$sulphates), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$citric.acid),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$sulphates,.01),quantile(df$sulphates,.99)),ylim=c(quantile(df$citric.acid,.01),quantile(df$citric.acid,.99)))
+```
+
+The graph above tells a very similar story when we graphed alcohol vs citric acid across the different quality buckets. It appears that \
+majority of wines ranked 7 or 8 have a combination of sulphate levels that are at least `r median(df$sulphates)`g/ml and \
+citric acid levels of at least `r median(df$citric.acid)` g/ml. \
+
+
+The next relation I will look at is alcohol vs sulphates and explore the relation to quality.\ 
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,multiplot.3}
+# Alcohol vs Sulphates
+multiplot.fun(df,'alcohol','sulphates') +
+  geom_vline(xintercept = median(df$alcohol), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$sulphates),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$alcohol), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$sulphates),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$alcohol,.01),quantile(df$alcohol,.99)),ylim=c(quantile(df$sulphates,.01),quantile(df$sulphates,.99))) 
+  
+```
+
+In this third graph, we begin to see a consistent pattern in the top 3 positively correlated properties on quality. The top wines rated\
+7 and 8 have a combination of alochol percentage of at least `r median(df$alcohol)`% and sulphate levels of `r median(df$sulphates)` g/ml.\
+Both levels are above their respective medians.\
+
+Now I am going to explore the combination of Volatile Acidy with alcohol,citric acid,and sulphates to see the effect on quality.\
+
+I'll start with alcohol vs Volatile acidity.\
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,multiplot.4}
+# Alcohol vs Volatile Acidity
+multiplot.fun(df,'alcohol','volatile.acidity') +
+  geom_vline(xintercept = median(df$alcohol), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$volatile.acidity),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$alcohol), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$volatile.acidity),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$alcohol,.01),quantile(df$alcohol,.99)),
+                  ylim=c(quantile(df$volatile.acidity,.01),quantile(df$volatile.acidity,.99))) 
+
+```
+
+We can clearly see that majority of the wines rated 7 and 8 have an alcohol percentage of at least `r median(df$alcohol)`% and \
+ have volatile acidity levels less than `r median(df$volatile.acidity)` g/ml \
+ 
+ Next up is citric acid vs volatile acid.\
+ 
+ 
+ 
+```{r echo=FALSE, message=FALSE, warning=FALSE,multiplot.5}
+# Citric Acid vs Volatile Acidity
+multiplot.fun(df,'citric.acid','volatile.acidity') +
+  geom_vline(xintercept = median(df$citric.acid), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$volatile.acidity),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$citric.acid), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$volatile.acidity),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$citric.acid,.01),quantile(df$citric.acid,.99)),
+                  ylim=c(quantile(df$volatile.acidity,.01),quantile(df$volatile.acidity,.99))) 
+
+```
+
+In the graph above, we see majority of the wines rated between 7 and 8 are all in the lower right quadrant of the graph which is very similar\
+to the alcohol vs volatile acidity graph. We see that majority of these wines have no more than `r median(df$volatile.acidity)` g/ml \
+of volatile acidity and at least `r median(df$citric.acid)` g/ml of citric acid.\
+
+The final reltionship I'll explore is volatile acidity vs sulphates.\
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,multiplot.6}
+# Sulphates vs volatile acidity
+multiplot.fun(df,'sulphates','volatile.acidity') +
+  geom_vline(xintercept = median(df$sulphates), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$volatile.acidity),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$sulphates), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$volatile.acidity),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$sulphates,.01),quantile(df$sulphates,.99)),
+                  ylim=c(quantile(df$volatile.acidity,.01),quantile(df$volatile.acidity,.99))) 
+
+```
+
+From the Final graph above, we can see the same pattern from the previous 2 graphs. Majority of the high quality wines are in the bottom \
+right quandrant of the graph. High quality wines have no more than `r median(df$volatile.acidity)` g/ml \
+of volatile acidity and at least `r median(df$sulphates)` g/ml of sulphates.
+
+# Multivariate Analysis \
+
+After exploring the combination affects of alcohol,citric acid,sulphates,and volatile acidity on quality, some interesting observations can \
+be seen.\
+1. As seen in the bivariate section, alcohol,citric acid,and sulphates are all positively correlated to Quality. This relationship shows up \
+in the multivariate plots. When you graph the combination affect of these properties, one can notice that majority of high quality wines \
+are in the upper right quadrant and above the means and medians for each respective property. However, The combination affect of these \ properties are not as strong for the medium and low quality wines as they are spread across all the quandrants of the graphs.\
+
+2. As seen in the bivariate section, volatile acidity was negatively correlated to quality and to the other properties I mentioned earlier. \
+When you graph the combination affect of volatile acidity with the other 3 properties across the quality buckets, you can see this relationship\
+in the high quality wines. Majority of the high quality wines are in the lower right quadrants of the graph and had volatile acidity levels \
+below the median of volatile acidity. However, this also is not true for the medium and low quality wines. It appears the high quality wines \
+are most affected by this correlation relationship. 
+
+------
+
+# Final Plots and Summary
+
+
+
+### Plot One
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,Final_Plot_1}
+# Quality Bucket Bar Graph
+bargraph.fun(df$Quality_Buckets,df) +
+  xlab("Quality Buckets") +
+  ylab("# of Obersvations") +
+  ggtitle("Red Wine Quality") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Description One
+Getting back to the original question of the properties that make a good wine, we first need to know what the \
+distribution for Quality rankings look like to get a feeling of what are the most common rankings and the least common rankings.\
+As seen from plot one, the most common wine rankings are between 5-6 which comprise of a medium bucket ranking. The least common ranking \
+is 3-4 which comprises the low bucket.\ 
+
+### Plot Two
+```{r echo=FALSE, message=FALSE, warning=FALSE,Final_Plot.2}
+# Alcohol vs Citric Acid over Quality Buckets
+multiplot.fun(df,'alcohol','citric.acid') +
+  geom_vline(xintercept = median(df$alcohol), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$citric.acid),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$alcohol), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$citric.acid),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$alcohol,.01),quantile(df$alcohol,.99)),ylim=c(quantile(df$citric.acid,.01),quantile(df$citric.acid,.99))) +
+  xlab("Alcohol (% by Volume)") +
+  ylab("Citric Acid g/ml") +
+  ggtitle("Alcohol vs Citric Acid") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Description Two
+In the bivariate section, we saw that Alcohol and Citric Acid were the two strongest positvely corrleated properties to Quality rankings. \
+In the graph above, the dashed lines are the medians and means from each respective property. They essentially cut the graph \
+into 4 quadrants. When you graph Alcohol vs Citric Acid across the different quality buckets, you can see that majority of\ 
+the higher quality wines are in the upper right quadrant which means that Alcohol percentages and Citric Acid levels are both above their \ respective means and medians. The bottom and top 1 % have been omitted to remove any outliers from the graph. This graph helps us answer \
+what properites can contribute to a high quality wine. \
+
+
+### Plot Three
+```{r echo=FALSE, message=FALSE, warning=FALSE,Final_Plot.3}
+# Alcohol vs Volatile  Acidity over Quality Buckets
+multiplot.fun(df,'alcohol','volatile.acidity') +
+  geom_vline(xintercept = median(df$alcohol), linetype = 'longdash', color = 'black') +
+  geom_hline(yintercept = median(df$volatile.acidity),linetype = 'longdash', color = 'black') +
+  geom_vline(xintercept = mean(df$alcohol), linetype = 'longdash', color = 'red') +
+  geom_hline(yintercept = mean(df$volatile.acidity),linetype = 'longdash', color = 'red') +
+  coord_cartesian(xlim=c(quantile(df$alcohol,.01),quantile(df$alcohol,.99)),ylim=c(quantile(df$volatile.acidity,.01),
+                                                                                   quantile(df$volatile.acidity,.99))) +
+  xlab("Alcohol (% by Volume)") +
+  ylab("Volatile Acidity  g/ml") +
+  ggtitle("Alcohol vs Volatile Acidity") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+### Description Three
+In the bivariate section, we also saw that Volatile Acidity was the strongest negatively corrleated property to Quality rankings. \
+In the graph above, the dashed lines are the medians and means for Alcohol and Volatile Acidity.  They essentially cut the graph \
+into 4 quadrants. When you graph Alcohol vs Volatile Acidity across the different quality buckets, you can see that majority of \ 
+the higher quality wines are in the lower right quadrant which means that Alcohol percentage is above the mean and median and \
+Volatile acidity levels are below its mean and median. The bottom and top 1 % have been omitted to remove any outliers from the graph.\ 
+This graph helps us answer what properites can contribute to a low quality wine. \
+
+
+------
+
+# Reflection
+The Red Wine Data set that I explored contained 1599 obvservations of wine properties and  quality outputs. In this exploration, I attempted\  
+to answer the following questions: \
+
+1. What does the Quality of Wine distribution look like? \
+2. What properties and their respective values make up a good wine? \
+3. What properties and their respective values make up a defective wine? \
+
+
+Upon reflecting on these questions and the explorations I conducted, I can now answer these questions: \
+
+1. The distribution for Quality is a normal distribution with a mean of 5.636 \
+
+2. It appears that the combination of Alcohol percentage, Citric Acid levels and Sulphates levels all contribute to a good quality wine.\
+I found that the levels for each of these properites were above the medians for each respective property.\
+
+3. It appears that Volatile Acidity is the main property that contributes to a defective wine. High levels of Volatile Acidity are more\
+common with the low and median ranked wines. It is very rare to find high levels of Volatile Acidity in High Quality wines.
+
+* The most suprising relationship I encountered is the correlation between Alcohol and Quality. It had more than double the correlation
+coefficient that any other property. I thought the correlation coefficient for Alcohol would be closer to other properties.\
+
+* A problem I see with this data set is that Red Wine is a very broad category for wine. There are many different types of Red Wine
+that span from a really sweet to a really dry taste. This could introduce a bias into the participants who sampled the wine and provided
+their feedback. For example, if a participant really likes sweet wine, they will probably rate a sweet red wine much higher than a dry red wine.\
+
+* A possible fix to this and for future work, is to split out sweet wines from the dry wines and collect data from each category. This could
+eliminate some of the bias in the rankings that are collected. Another area to try is to come up with another quality ranking system 
+that is more robust than just opinions. An interesting data item to include in the data set is price of each sampled wine. \ 
+
+
+
+
